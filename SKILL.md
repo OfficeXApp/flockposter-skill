@@ -14,7 +14,7 @@ pnpm install -g flockposter-cli
 ```
 
 npm package: https://www.npmjs.com/package/flockposter-cli
-skill docs repo: https://github.com/OfficeXApp/flockposter
+skill docs repo: https://github.com/OfficeXApp/flockposter-skill
 product docs: https://docs.flockposter.com
 official website: https://app.flockposter.com
 ---

@@ -63,3 +63,4 @@ flockposter posts:list
 - App: `https://app.flockposter.com`
 - npm: `https://www.npmjs.com/package/flockposter-cli`
 - Docs: `https://docs.flockposter.com`
+- Skill repo: `https://github.com/OfficeXApp/flockposter-skill`
