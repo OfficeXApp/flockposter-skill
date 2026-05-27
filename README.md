@@ -57,19 +57,13 @@ The agent-facing skill includes exact examples and guardrails for:
 - Instagram posts, Reels, Stories, and Trial Reels
 - YouTube uploads and Shorts
 
-Ready-to-use examples are in `examples/`:
-- `cli-x-thread.sh`
-- `cli-tiktok-upload-only.sh`
-- `cli-instagram-reel.sh`
-- `cli-youtube-short.sh`
-- `cli-multi-platform.json`
-- `public-api-instagram-reel.json`
+Ready-to-use examples are included inline in `SKILL.md` so the landing page `SKILL.md` clipboard button is self-contained.
 
 ## Files
 
 - `SKILL.md` contains the agent-facing workflow and guardrails.
 - `README.md` contains the human-facing quick start.
-- `examples/` contains customer-safe CLI and public API payload examples.
+- `examples/` contains the same customer-safe CLI and public API payload examples as standalone files.
 
 ## Public links
 

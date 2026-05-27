@@ -307,15 +307,221 @@ flockposter posts:create \
 
 For a normal YouTube video, use the same settings and provide the uploaded video URL as media. If using a thumbnail, upload the thumbnail first and pass it in `settings.thumbnail` as an object with `id` and `path`.
 
-## Example Files
+## Inline Examples
 
-This skill includes customer-safe examples in `examples/`:
-- `cli-x-thread.sh`
-- `cli-tiktok-upload-only.sh`
-- `cli-instagram-reel.sh`
-- `cli-youtube-short.sh`
-- `cli-multi-platform.json`
-- `public-api-instagram-reel.json`
+Use these examples directly from the copied `SKILL.md`. Replace integration IDs, dates, captions, and media file paths with the customer's values.
+
+### CLI X Thread
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Required:
+#   export FLOCKPOSTER_API_KEY=...
+#   export X_INTEGRATION_ID=...
+
+flockposter integrations:settings "$X_INTEGRATION_ID"
+
+flockposter posts:create \
+  -c "1/ First thread item" \
+  -c "2/ Second thread item" \
+  -c "3/ Final thread item" \
+  -s "2026-05-18T15:00:00Z" \
+  -d 5000 \
+  --settings '{"who_can_reply_post":"everyone","community":""}' \
+  -i "$X_INTEGRATION_ID"
+```
+
+### CLI TikTok Upload Without Posting
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Required:
+#   export FLOCKPOSTER_API_KEY=...
+#   export TIKTOK_INTEGRATION_ID=...
+#   export VIDEO_FILE=video.mp4
+#
+# TikTok upload-only means FlockPoster uploads media to TikTok without publishing it.
+# The creator finishes review/edit/publish inside TikTok.
+
+flockposter integrations:settings "$TIKTOK_INTEGRATION_ID"
+
+VIDEO_RESULT=$(flockposter upload "${VIDEO_FILE:-video.mp4}")
+VIDEO_URL=$(echo "$VIDEO_RESULT" | jq -r '.path')
+
+flockposter posts:create \
+  -c "Video caption #fyp" \
+  -s "2026-05-18T15:00:00Z" \
+  --settings '{"content_posting_method":"UPLOAD","privacy_level":"PUBLIC_TO_EVERYONE","comment":true,"duet":false,"stitch":false,"autoAddMusic":"no","brand_content_toggle":false,"brand_organic_toggle":false,"video_made_with_ai":false}' \
+  -m "$VIDEO_URL" \
+  -i "$TIKTOK_INTEGRATION_ID"
+```
+
+### CLI Instagram Reel
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Required:
+#   export FLOCKPOSTER_API_KEY=...
+#   export INSTAGRAM_INTEGRATION_ID=...
+#   export VIDEO_FILE=reel.mp4
+#
+# Instagram Reels use post_type "post" with video media.
+
+flockposter integrations:settings "$INSTAGRAM_INTEGRATION_ID"
+
+VIDEO_RESULT=$(flockposter upload "${VIDEO_FILE:-reel.mp4}")
+VIDEO_URL=$(echo "$VIDEO_RESULT" | jq -r '.path')
+
+flockposter posts:create \
+  -c "Reel caption" \
+  -s "2026-05-18T15:00:00Z" \
+  --settings '{"post_type":"post"}' \
+  -m "$VIDEO_URL" \
+  -i "$INSTAGRAM_INTEGRATION_ID"
+```
+
+### CLI YouTube Short
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Required:
+#   export FLOCKPOSTER_API_KEY=...
+#   export YOUTUBE_INTEGRATION_ID=...
+#   export VIDEO_FILE=short.mp4
+#
+# YouTube Shorts use the normal YouTube upload flow.
+
+flockposter integrations:settings "$YOUTUBE_INTEGRATION_ID"
+
+VIDEO_RESULT=$(flockposter upload "${VIDEO_FILE:-short.mp4}")
+VIDEO_URL=$(echo "$VIDEO_RESULT" | jq -r '.path')
+
+flockposter posts:create \
+  -c "Short description" \
+  -s "2026-05-18T15:00:00Z" \
+  --settings '{"title":"Short title","type":"public","selfDeclaredMadeForKids":"no","tags":[{"value":"shorts","label":"shorts"}]}' \
+  -m "$VIDEO_URL" \
+  -i "$YOUTUBE_INTEGRATION_ID"
+```
+
+### CLI Multi-Platform JSON
+
+Save as `post.json`, replace IDs and media URLs, then run `flockposter posts:create --json post.json`.
+
+```json
+{
+  "integrations": ["x-integration-id", "instagram-integration-id", "youtube-integration-id", "tiktok-integration-id"],
+  "posts": [
+    {
+      "provider": "x",
+      "post": [
+        {
+          "content": "Short X version",
+          "image": []
+        }
+      ],
+      "settings": {
+        "__type": "x",
+        "who_can_reply_post": "everyone",
+        "community": ""
+      }
+    },
+    {
+      "provider": "instagram",
+      "post": [
+        {
+          "content": "Instagram Reel caption",
+          "image": ["https://uploads.flockposter.com/reel.mp4"]
+        }
+      ],
+      "settings": {
+        "__type": "instagram",
+        "post_type": "post"
+      }
+    },
+    {
+      "provider": "youtube",
+      "post": [
+        {
+          "content": "YouTube Short description",
+          "image": ["https://uploads.flockposter.com/short.mp4"]
+        }
+      ],
+      "settings": {
+        "__type": "youtube",
+        "title": "Short title",
+        "type": "public",
+        "selfDeclaredMadeForKids": "no",
+        "tags": [{ "value": "shorts", "label": "shorts" }]
+      }
+    },
+    {
+      "provider": "tiktok",
+      "post": [
+        {
+          "content": "TikTok caption #fyp",
+          "image": ["https://uploads.flockposter.com/tiktok.mp4"]
+        }
+      ],
+      "settings": {
+        "__type": "tiktok",
+        "content_posting_method": "UPLOAD",
+        "privacy_level": "PUBLIC_TO_EVERYONE",
+        "comment": true,
+        "duet": false,
+        "stitch": false,
+        "autoAddMusic": "no",
+        "brand_content_toggle": false,
+        "brand_organic_toggle": false,
+        "video_made_with_ai": false
+      }
+    }
+  ]
+}
+```
+
+### Public API Instagram Reel JSON
+
+Use this shape for `POST /public/v1/posts` payloads. Replace the integration ID and uploaded media object.
+
+```json
+{
+  "type": "schedule",
+  "date": "2026-05-18T15:00:00.000Z",
+  "shortLink": false,
+  "tags": [],
+  "posts": [
+    {
+      "integration": {
+        "id": "instagram-integration-id"
+      },
+      "value": [
+        {
+          "content": "Instagram Reel caption",
+          "image": [
+            {
+              "id": "uploaded-media-id",
+              "path": "https://uploads.flockposter.com/reel.mp4"
+            }
+          ]
+        }
+      ],
+      "settings": {
+        "__type": "instagram",
+        "post_type": "post"
+      }
+    }
+  ]
+}
+```
 
 ## Important Behaviors
 
