@@ -8,6 +8,7 @@ It is intentionally limited to supported customer workflows:
 - discover integrations and provider settings
 - upload media
 - create draft or scheduled posts
+- handle platform-specific cases for X, TikTok, Instagram, and YouTube
 - fetch analytics
 - recover missing release IDs
 
@@ -48,10 +49,27 @@ flockposter posts:create \
 flockposter posts:list
 ```
 
+## Provider examples
+
+The agent-facing skill includes exact examples and guardrails for:
+- X posts, reply controls, communities, and threads
+- TikTok direct posting and upload-without-posting flows
+- Instagram posts, Reels, Stories, and Trial Reels
+- YouTube uploads and Shorts
+
+Ready-to-use examples are in `examples/`:
+- `cli-x-thread.sh`
+- `cli-tiktok-upload-only.sh`
+- `cli-instagram-reel.sh`
+- `cli-youtube-short.sh`
+- `cli-multi-platform.json`
+- `public-api-instagram-reel.json`
+
 ## Files
 
 - `SKILL.md` contains the agent-facing workflow and guardrails.
 - `README.md` contains the human-facing quick start.
+- `examples/` contains customer-safe CLI and public API payload examples.
 
 ## Public links
 

@@ -1,0 +1,69 @@
+{
+  "integrations": ["x-integration-id", "instagram-integration-id", "youtube-integration-id", "tiktok-integration-id"],
+  "posts": [
+    {
+      "provider": "x",
+      "post": [
+        {
+          "content": "Short X version",
+          "image": []
+        }
+      ],
+      "settings": {
+        "__type": "x",
+        "who_can_reply_post": "everyone",
+        "community": ""
+      }
+    },
+    {
+      "provider": "instagram",
+      "post": [
+        {
+          "content": "Instagram Reel caption",
+          "image": ["https://uploads.flockposter.com/reel.mp4"]
+        }
+      ],
+      "settings": {
+        "__type": "instagram",
+        "post_type": "post"
+      }
+    },
+    {
+      "provider": "youtube",
+      "post": [
+        {
+          "content": "YouTube Short description",
+          "image": ["https://uploads.flockposter.com/short.mp4"]
+        }
+      ],
+      "settings": {
+        "__type": "youtube",
+        "title": "Short title",
+        "type": "public",
+        "selfDeclaredMadeForKids": "no",
+        "tags": [{ "value": "shorts", "label": "shorts" }]
+      }
+    },
+    {
+      "provider": "tiktok",
+      "post": [
+        {
+          "content": "TikTok caption #fyp",
+          "image": ["https://uploads.flockposter.com/tiktok.mp4"]
+        }
+      ],
+      "settings": {
+        "__type": "tiktok",
+        "content_posting_method": "UPLOAD",
+        "privacy_level": "PUBLIC_TO_EVERYONE",
+        "comment": true,
+        "duet": false,
+        "stitch": false,
+        "autoAddMusic": "no",
+        "brand_content_toggle": false,
+        "brand_organic_toggle": false,
+        "video_made_with_ai": false
+      }
+    }
+  ]
+}

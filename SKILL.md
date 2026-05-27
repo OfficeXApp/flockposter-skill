@@ -57,6 +57,19 @@ Use this sequence unless the user asks for something narrower:
 5. Create the post with `flockposter posts:create`
 6. Review output with `flockposter posts:list` or analytics commands
 
+Do not skip discovery for provider-specific posts. Integration IDs are customer-specific, and settings can vary by provider, account, and release.
+
+## Agent Decision Rules
+
+- Use CLI flags for one platform with one shared content body.
+- Use repeated `-c` and matching repeated `-m` values for comments, replies, or X threads.
+- Use `posts:create --json <file>` when each platform needs different content, different media, or different settings.
+- For CLI `--settings`, pass provider fields directly; the backend can infer the provider from the integration ID.
+- For CLI `--json`, include `settings.__type` when settings are present.
+- For public API payloads, always include `settings.__type` for provider-specific settings.
+- Never invent provider values. Run `integrations:settings`, then use the field names and allowed values shown by the schema.
+- Treat uploaded FlockPoster media URLs as the default for TikTok, Instagram, and YouTube posts.
+
 ## Core Commands
 
 Discovery:
@@ -72,6 +85,7 @@ Posting:
 ```bash
 flockposter posts:create -c "Content" -s "2026-05-18T15:00:00Z" -i "integration-id"
 flockposter posts:create -c "Content" -s "2026-05-18T15:00:00Z" -t draft -i "integration-id"
+flockposter posts:create -c "Thread item 1" -c "Thread item 2" -s "2026-05-18T15:00:00Z" -d 5000 -i "integration-id"
 flockposter posts:create --json post.json
 ```
 
@@ -88,6 +102,14 @@ Uploads:
 flockposter upload image.jpg
 ```
 
+For posts with local media, upload the file first and pass the returned `.path` to `posts:create`:
+
+```bash
+MEDIA_RESULT=$(flockposter upload video.mp4)
+MEDIA_URL=$(echo "$MEDIA_RESULT" | jq -r '.path')
+flockposter posts:create -c "Content" -s "2026-05-18T15:00:00Z" -m "$MEDIA_URL" -i "integration-id"
+```
+
 Analytics:
 
 ```bash
@@ -102,12 +124,209 @@ flockposter posts:missing <post-id>
 flockposter posts:connect <post-id> --release-id "<content-id>"
 ```
 
+## Payload Shapes
+
+CLI `--settings` example. Use this for a single integration:
+
+```bash
+flockposter posts:create \
+  -c "Post content" \
+  -s "2026-05-18T15:00:00Z" \
+  --settings '{"who_can_reply_post":"everyone"}' \
+  -i "x-integration-id"
+```
+
+CLI `--json` example. Use this when platforms need different content/settings:
+
+```json
+{
+  "integrations": ["x-integration-id", "instagram-integration-id"],
+  "posts": [
+    {
+      "provider": "x",
+      "post": [{ "content": "Short X version", "image": [] }],
+      "settings": { "__type": "x", "who_can_reply_post": "everyone" }
+    },
+    {
+      "provider": "instagram",
+      "post": [{ "content": "Instagram caption", "image": ["https://uploads.flockposter.com/reel.mp4"] }],
+      "settings": { "__type": "instagram", "post_type": "post" }
+    }
+  ]
+}
+```
+
+Public API payloads use a different shape from CLI JSON files:
+
+```json
+{
+  "type": "schedule",
+  "date": "2026-05-18T15:00:00.000Z",
+  "shortLink": false,
+  "tags": [],
+  "posts": [
+    {
+      "integration": { "id": "instagram-integration-id" },
+      "value": [
+        {
+          "content": "Instagram caption",
+          "image": [{ "id": "uploaded-media-id", "path": "https://uploads.flockposter.com/reel.mp4" }]
+        }
+      ],
+      "settings": { "__type": "instagram", "post_type": "post" }
+    }
+  ]
+}
+```
+
+## Provider-Specific Cases
+
+Always run `flockposter integrations:settings <integration-id>` before relying on provider-specific fields. The examples below show common public settings, but the live integration schema should be treated as the source of truth.
+
+Common setting keys:
+
+| Provider | Required/common settings | Notes |
+|----------|--------------------------|-------|
+| X | `who_can_reply_post`, optional `community` | Valid reply values: `everyone`, `following`, `mentionedUsers`, `subscribers`, `verified`. |
+| TikTok | `privacy_level`, `comment`, `duet`, `stitch`, `autoAddMusic`, `brand_content_toggle`, `brand_organic_toggle`, `content_posting_method` | Use `content_posting_method: "UPLOAD"` for upload without posting. |
+| Instagram | `post_type`, optional `is_trial_reel`, `graduation_strategy`, `collaborators` | Reels use `post_type: "post"` with video media. |
+| YouTube | `title`, `type`, optional `selfDeclaredMadeForKids`, `thumbnail`, `tags` | Shorts use normal YouTube upload settings. |
+
+### X
+
+Use `who_can_reply_post` to control replies. Valid values are `everyone`, `following`, `mentionedUsers`, `subscribers`, and `verified`. Use `community` only for an X community URL in the form `https://x.com/i/communities/<id>`.
+
+```bash
+flockposter posts:create \
+  -c "Post content" \
+  -s "2026-05-18T15:00:00Z" \
+  --settings '{"who_can_reply_post":"everyone","community":""}' \
+  -i "x-integration-id"
+```
+
+For threads, create comments/replies through the normal post/comment structure or JSON mode.
+
+```bash
+flockposter posts:create \
+  -c "1/ First thread item" \
+  -c "2/ Second thread item" \
+  -c "3/ Final thread item" \
+  -s "2026-05-18T15:00:00Z" \
+  -d 5000 \
+  --settings '{"who_can_reply_post":"everyone"}' \
+  -i "x-integration-id"
+```
+
+### TikTok
+
+Upload media to FlockPoster before creating TikTok posts. TikTok supports two posting methods:
+- `DIRECT_POST`: publish directly to TikTok.
+- `UPLOAD`: upload media to TikTok without posting, so the creator can review/edit/publish in TikTok later.
+
+```bash
+VIDEO_RESULT=$(flockposter upload video.mp4)
+VIDEO_URL=$(echo "$VIDEO_RESULT" | jq -r '.path')
+
+flockposter posts:create \
+  -c "Video caption #fyp" \
+  -s "2026-05-18T15:00:00Z" \
+  --settings '{"content_posting_method":"UPLOAD","privacy_level":"PUBLIC_TO_EVERYONE","comment":true,"duet":false,"stitch":false,"autoAddMusic":"no","brand_content_toggle":false,"brand_organic_toggle":false,"video_made_with_ai":false}' \
+  -m "$VIDEO_URL" \
+  -i "tiktok-integration-id"
+```
+
+When `content_posting_method` is `UPLOAD`, TikTok handles final publishing in the TikTok app. Privacy, comment, duet, stitch, and disclosure controls may be disabled or ignored by TikTok for upload-only flows.
+
+For a direct TikTok publish, use `content_posting_method: "DIRECT_POST"`:
+
+```bash
+flockposter posts:create \
+  -c "Video caption #fyp" \
+  -s "2026-05-18T15:00:00Z" \
+  --settings '{"content_posting_method":"DIRECT_POST","privacy_level":"PUBLIC_TO_EVERYONE","comment":true,"duet":false,"stitch":false,"autoAddMusic":"no","brand_content_toggle":false,"brand_organic_toggle":false,"video_made_with_ai":false}' \
+  -m "$VIDEO_URL" \
+  -i "tiktok-integration-id"
+```
+
+### Instagram Reels, Posts, Stories, And Trial Reels
+
+Instagram uses `post_type: "post"` for regular feed posts and Reels, and `post_type: "story"` for Stories. FlockPoster determines Reel behavior from video media under `post_type: "post"`.
+
+```bash
+VIDEO_RESULT=$(flockposter upload reel.mp4)
+VIDEO_URL=$(echo "$VIDEO_RESULT" | jq -r '.path')
+
+flockposter posts:create \
+  -c "Reel caption" \
+  -s "2026-05-18T15:00:00Z" \
+  --settings '{"post_type":"post"}' \
+  -m "$VIDEO_URL" \
+  -i "instagram-integration-id"
+```
+
+For Trial Reels, use one video with `is_trial_reel: true`. Optional `graduation_strategy` values are `MANUAL` and `SS_PERFORMANCE`.
+
+```bash
+flockposter posts:create \
+  -c "Trial Reel caption" \
+  -s "2026-05-18T15:00:00Z" \
+  --settings '{"post_type":"post","is_trial_reel":true,"graduation_strategy":"MANUAL"}' \
+  -m "$VIDEO_URL" \
+  -i "instagram-integration-id"
+```
+
+Stories use `post_type: "story"` and should use Story-compatible media.
+
+```bash
+STORY_RESULT=$(flockposter upload story.jpg)
+STORY_URL=$(echo "$STORY_RESULT" | jq -r '.path')
+
+flockposter posts:create \
+  -c "" \
+  -s "2026-05-18T15:00:00Z" \
+  --settings '{"post_type":"story"}' \
+  -m "$STORY_URL" \
+  -i "instagram-integration-id"
+```
+
+### YouTube Shorts
+
+YouTube uses the normal YouTube upload flow for both standard videos and Shorts. Upload a Shorts-compatible video and create a YouTube post with the usual title, privacy, made-for-kids, thumbnail, and tags settings.
+
+```bash
+VIDEO_RESULT=$(flockposter upload short.mp4)
+VIDEO_URL=$(echo "$VIDEO_RESULT" | jq -r '.path')
+
+flockposter posts:create \
+  -c "Short description" \
+  -s "2026-05-18T15:00:00Z" \
+  --settings '{"title":"Short title","type":"public","selfDeclaredMadeForKids":"no","tags":[{"value":"shorts","label":"shorts"}]}' \
+  -m "$VIDEO_URL" \
+  -i "youtube-integration-id"
+```
+
+For a normal YouTube video, use the same settings and provide the uploaded video URL as media. If using a thumbnail, upload the thumbnail first and pass it in `settings.thumbnail` as an object with `id` and `path`.
+
+## Example Files
+
+This skill includes customer-safe examples in `examples/`:
+- `cli-x-thread.sh`
+- `cli-tiktok-upload-only.sh`
+- `cli-instagram-reel.sh`
+- `cli-youtube-short.sh`
+- `cli-multi-platform.json`
+- `public-api-instagram-reel.json`
+
 ## Important Behaviors
 
 - Treat media upload as the default for local files. Many platforms reject external URLs.
 - Use ISO 8601 timestamps when scheduling posts.
 - Inspect integration settings before inventing provider-specific fields.
 - If analytics returns `{"missing": true}`, recover the release ID with `posts:missing` and `posts:connect`.
+- TikTok visibility is controlled with `privacy_level`.
+- Instagram Reels use `post_type: "post"` with video media.
+- X reply controls use the allowed values from `who_can_reply_post`.
+- YouTube Shorts use the normal YouTube upload settings.
 - Prefer the public docs and the CLI help output over assumptions.
 
 ## Troubleshooting

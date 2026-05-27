@@ -1,0 +1,28 @@
+{
+  "type": "schedule",
+  "date": "2026-05-18T15:00:00.000Z",
+  "shortLink": false,
+  "tags": [],
+  "posts": [
+    {
+      "integration": {
+        "id": "instagram-integration-id"
+      },
+      "value": [
+        {
+          "content": "Instagram Reel caption",
+          "image": [
+            {
+              "id": "uploaded-media-id",
+              "path": "https://uploads.flockposter.com/reel.mp4"
+            }
+          ]
+        }
+      ],
+      "settings": {
+        "__type": "instagram",
+        "post_type": "post"
+      }
+    }
+  ]
+}
